@@ -1,8 +1,9 @@
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import axios, { AxiosInstance, AxiosError } from "axios";
 /**
  * Utility functions and anti-corruption layer for yanki-connect
  */
 import { YankiConnect } from "yanki-connect";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 
 /**
  * Custom error types for Anki operations
@@ -28,6 +29,23 @@ export class AnkiApiError extends Error {
 	) {
 		super(message);
 		this.name = "AnkiApiError";
+	}
+}
+
+export class PayloadConnectionError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "PayloadConnectionError";
+	}
+}
+
+export class PayloadApiError extends Error {
+	constructor(
+		message: string,
+		public statusCode?: number,
+	) {
+		super(message);
+		this.name = "PayloadApiError";
 	}
 }
 
@@ -460,5 +478,85 @@ export class AnkiClient {
 				error instanceof Error ? error : new Error(String(error)),
 			);
 		}
+	}
+}
+
+/**
+ * Client for interacting with Payload CMS REST API
+ */
+export class PayloadClient {
+	private httpClient: AxiosInstance;
+
+	constructor() {
+		this.httpClient = axios.create({
+			timeout: 10000,
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+	}
+
+	/**
+	 * Create a new atom document in Payload CMS
+	 */
+	async createAtom(
+		payloadUrl: string,
+		atomData: Record<string, any>,
+	): Promise<{ id: string }> {
+		try {
+			const url = `${payloadUrl.replace(/\/$/, "")}/api/atoms`;
+
+			const response = await this.httpClient.post(url, atomData);
+
+			if (!response.data || !response.data.id) {
+				throw new PayloadApiError(
+					"Invalid response from Payload CMS: missing id field",
+					response.status,
+				);
+			}
+
+			return { id: response.data.id };
+		} catch (error) {
+			if (error instanceof AxiosError) {
+				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+					throw new PayloadConnectionError(
+						`Cannot connect to Payload CMS at ${payloadUrl}. Please check the URL and ensure the server is running.`,
+					);
+				}
+
+				if (error.response) {
+					const statusCode = error.response.status;
+					const message = error.response.data?.message || error.message;
+					throw new PayloadApiError(
+						`Payload CMS API error: ${message}`,
+						statusCode,
+					);
+				}
+
+				throw new PayloadConnectionError(
+					`Network error connecting to Payload CMS: ${error.message}`,
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	/**
+	 * Convert client errors to MCP errors
+	 */
+	wrapError(error: Error): McpError {
+		if (error instanceof PayloadConnectionError) {
+			return new McpError(ErrorCode.InternalError, error.message);
+		}
+
+		if (error instanceof PayloadApiError) {
+			return new McpError(ErrorCode.InternalError, error.message);
+		}
+
+		return new McpError(
+			ErrorCode.InternalError,
+			`Payload error: ${error.message}`,
+		);
 	}
 }

@@ -2,16 +2,18 @@
  * MCP Tool handlers for Anki
  */
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
-import { AnkiClient } from "./utils.js";
+import { AnkiClient, PayloadClient } from "./utils.js";
 
 /**
  * Handles all MCP tool operations for Anki
  */
 export class McpToolHandler {
 	private ankiClient: AnkiClient;
+	private payloadClient: PayloadClient;
 
 	constructor() {
 		this.ankiClient = new AnkiClient();
+		this.payloadClient = new PayloadClient();
 	}
 
 	/**
@@ -268,8 +270,77 @@ export class McpToolHandler {
 						required: ["name", "fields", "templates"],
 					},
 				},
+				{
+					name: "create_atom",
+					description: "Create a new atom document in Payload CMS",
+					inputSchema: {
+						type: "object",
+						properties: {
+							payloadUrl: {
+								type: "string",
+								description:
+									"Base URL of the Payload CMS instance (e.g., https://my-payload-cms.com)",
+							},
+							atomData: {
+								type: "object",
+								description: "Data for the atom document",
+								additionalProperties: true,
+							},
+						},
+						required: ["payloadUrl", "atomData"],
+					},
+				},
 			],
 		};
+	}
+
+	/**
+	 * Create an atom document in Payload CMS
+	 */
+	private async createAtom(args: {
+		payloadUrl: string;
+		atomData: Record<string, any>;
+	}): Promise<{
+		content: {
+			type: string;
+			text: string;
+		}[];
+	}> {
+		if (!args.payloadUrl) {
+			throw new McpError(ErrorCode.InvalidParams, "Payload URL is required");
+		}
+
+		if (!args.atomData || typeof args.atomData !== "object") {
+			throw new McpError(ErrorCode.InvalidParams, "Atom data is required");
+		}
+
+		try {
+			const result = await this.payloadClient.createAtom(
+				args.payloadUrl,
+				args.atomData,
+			);
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify(
+							{
+								success: true,
+								atomId: result.id,
+								payloadUrl: args.payloadUrl,
+							},
+							null,
+							2,
+						),
+					},
+				],
+			};
+		} catch (error) {
+			throw this.payloadClient.wrapError(
+				error instanceof Error ? error : new Error(String(error)),
+			);
+		}
 	}
 
 	/**
@@ -316,6 +387,10 @@ export class McpToolHandler {
 					return this.updateNote(args);
 				case "delete_note":
 					return this.deleteNote(args);
+
+				// Payload CMS tools
+				case "create_atom":
+					return this.createAtom(args);
 
 				// Dynamic model-specific note creation
 				default:

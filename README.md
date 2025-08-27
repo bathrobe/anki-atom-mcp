@@ -18,6 +18,7 @@ A Model Context Protocol (MCP) server that enables LLMs to interact with Anki fl
 - `list_note_types` - List all available note types
 - `create_note_type` - Create a new note type
 - `get_note_type_info` - Get detailed structure of a note type
+- `create_atom` - Create a new atom document in Payload CMS
 
 ### Resources
 - `anki://decks/all` - Complete list of available decks
@@ -30,33 +31,79 @@ A Model Context Protocol (MCP) server that enables LLMs to interact with Anki fl
 1. [Anki](https://apps.ankiweb.net/) installed on your system
 2. [AnkiConnect](https://ankiweb.net/shared/info/2055492159) add-on installed in Anki
 
-## Configuration
+## Installation & Configuration
 
-### Usage with Claude Desktop
+### Option 1: Install from GitHub (Recommended)
 
-Add the server to your claude_desktop_config.json:
+Install directly from this GitHub repository:
+
+#### Usage with Claude Desktop
+
+Add the server to your `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "anki": {
+    "anki-atom": {
       "command": "npx",
-      "args": ["--yes","anki-mcp-server"]
+      "args": ["--yes", "github:bathrobe/anki-atom-mcp"]
     }
   }
 }
 ```
 
-### Configuration for Cline
+#### Configuration for Cline
 
-Add the server to your Cline MCP settings file inside VSCode's settings `cline_mcp_settings.json` 
+Add the server to your Cline MCP settings file `cline_mcp_settings.json`:
 
 ```json
 {
   "mcpServers": {
-    "anki": {
+    "anki-atom": {
       "command": "npx",
-      "args": ["--yes","anki-mcp-server"]
+      "args": ["--yes", "github:bathrobe/anki-atom-mcp"]
+    }
+  }
+}
+```
+
+### Option 2: Local Development Installation
+
+For local development or testing:
+
+1. Clone this repository:
+```bash
+git clone https://github.com/bathrobe/anki-atom-mcp.git
+cd anki-atom-mcp
+```
+
+2. Install dependencies and build:
+```bash
+npm install
+npm run build
+```
+
+3. Configure with absolute path:
+
+#### Claude Desktop Configuration
+```json
+{
+  "mcpServers": {
+    "anki-atom": {
+      "command": "node",
+      "args": ["/absolute/path/to/anki-atom-mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+#### Cline Configuration  
+```json
+{
+  "mcpServers": {
+    "anki-atom": {
+      "command": "node",
+      "args": ["/absolute/path/to/anki-atom-mcp/dist/index.js"]
     }
   }
 }
@@ -127,6 +174,11 @@ Back: A closure is the combination of a function and the lexical environment wit
 ```
 Create a cloze card in the "Programming" deck with:
 Text: In JavaScript, {{c1::const}} declares a block-scoped variable that cannot be {{c2::reassigned}}.
+```
+
+4. Create an atom in Payload CMS:
+```
+Create an atom document with title "My Learning Note" and content "JavaScript closures are powerful" in my Payload CMS at https://my-payload.com
 ```
 
 
