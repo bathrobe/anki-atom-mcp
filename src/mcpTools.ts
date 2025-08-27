@@ -309,6 +309,117 @@ export class McpToolHandler {
 						required: ["atomId"],
 					},
 				},
+				{
+					name: "list_atoms",
+					description:
+						"List atoms from Payload CMS with optional filtering and pagination",
+					inputSchema: {
+						type: "object",
+						properties: {
+							payloadUrl: {
+								type: "string",
+								description:
+									"Base URL of the Payload CMS instance (defaults to http://localhost:3000)",
+							},
+							limit: {
+								type: "number",
+								description: "Number of atoms to return per page (default: 10)",
+							},
+							page: {
+								type: "number",
+								description: "Page number to retrieve (default: 1)",
+							},
+							where: {
+								type: "object",
+								description: "Filter conditions for the atoms query",
+								additionalProperties: true,
+							},
+						},
+						required: [],
+					},
+				},
+				{
+					name: "update_atom",
+					description: "Update an existing atom document in Payload CMS",
+					inputSchema: {
+						type: "object",
+						properties: {
+							payloadUrl: {
+								type: "string",
+								description:
+									"Base URL of the Payload CMS instance (defaults to http://localhost:3000)",
+							},
+							atomId: {
+								type: "string",
+								description: "ID of the atom document to update",
+							},
+							atomData: {
+								type: "object",
+								description: "Updated data for the atom document",
+								additionalProperties: true,
+							},
+						},
+						required: ["atomId", "atomData"],
+					},
+				},
+				{
+					name: "delete_atom",
+					description: "Delete an atom document from Payload CMS",
+					inputSchema: {
+						type: "object",
+						properties: {
+							payloadUrl: {
+								type: "string",
+								description:
+									"Base URL of the Payload CMS instance (defaults to http://localhost:3000)",
+							},
+							atomId: {
+								type: "string",
+								description: "ID of the atom document to delete",
+							},
+						},
+						required: ["atomId"],
+					},
+				},
+				{
+					name: "create_lecture",
+					description: "Create a new lecture document in Payload CMS",
+					inputSchema: {
+						type: "object",
+						properties: {
+							payloadUrl: {
+								type: "string",
+								description:
+									"Base URL of the Payload CMS instance (defaults to http://localhost:3000)",
+							},
+							lectureData: {
+								type: "object",
+								description: "Data for the lecture document",
+								additionalProperties: true,
+							},
+						},
+						required: ["lectureData"],
+					},
+				},
+				{
+					name: "get_lecture",
+					description: "Get a lecture document from Payload CMS by ID",
+					inputSchema: {
+						type: "object",
+						properties: {
+							payloadUrl: {
+								type: "string",
+								description:
+									"Base URL of the Payload CMS instance (defaults to http://localhost:3000)",
+							},
+							lectureId: {
+								type: "string",
+								description: "ID of the lecture document to retrieve",
+							},
+						},
+						required: ["lectureId"],
+					},
+				},
 			],
 		};
 	}
@@ -399,6 +510,230 @@ export class McpToolHandler {
 	}
 
 	/**
+	 * List atoms from Payload CMS
+	 */
+	private async listAtoms(args: {
+		payloadUrl?: string;
+		limit?: number;
+		page?: number;
+		where?: Record<string, any>;
+	}): Promise<{
+		content: {
+			type: string;
+			text: string;
+		}[];
+	}> {
+		const payloadUrl = args.payloadUrl || "http://localhost:3000";
+
+		try {
+			const result = await this.payloadClient.listAtoms(payloadUrl, {
+				limit: args.limit,
+				page: args.page,
+				where: args.where,
+			});
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify(result, null, 2),
+					},
+				],
+			};
+		} catch (error) {
+			throw this.payloadClient.wrapError(
+				error instanceof Error ? error : new Error(String(error)),
+			);
+		}
+	}
+
+	/**
+	 * Update an atom document in Payload CMS
+	 */
+	private async updateAtom(args: {
+		payloadUrl?: string;
+		atomId: string;
+		atomData: Record<string, any>;
+	}): Promise<{
+		content: {
+			type: string;
+			text: string;
+		}[];
+	}> {
+		if (!args.atomId) {
+			throw new McpError(ErrorCode.InvalidParams, "Atom ID is required");
+		}
+
+		if (!args.atomData || typeof args.atomData !== "object") {
+			throw new McpError(ErrorCode.InvalidParams, "Atom data is required");
+		}
+
+		const payloadUrl = args.payloadUrl || "http://localhost:3000";
+
+		try {
+			const result = await this.payloadClient.updateAtom(
+				payloadUrl,
+				args.atomId,
+				args.atomData,
+			);
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify(
+							{
+								success: true,
+								message: "Atom successfully updated",
+								atomId: args.atomId,
+								updatedData: result,
+							},
+							null,
+							2,
+						),
+					},
+				],
+			};
+		} catch (error) {
+			throw this.payloadClient.wrapError(
+				error instanceof Error ? error : new Error(String(error)),
+			);
+		}
+	}
+
+	/**
+	 * Delete an atom document from Payload CMS
+	 */
+	private async deleteAtom(args: {
+		payloadUrl?: string;
+		atomId: string;
+	}): Promise<{
+		content: {
+			type: string;
+			text: string;
+		}[];
+	}> {
+		if (!args.atomId) {
+			throw new McpError(ErrorCode.InvalidParams, "Atom ID is required");
+		}
+
+		const payloadUrl = args.payloadUrl || "http://localhost:3000";
+
+		try {
+			await this.payloadClient.deleteAtom(payloadUrl, args.atomId);
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify(
+							{
+								success: true,
+								message: "Atom successfully deleted",
+								atomId: args.atomId,
+							},
+							null,
+							2,
+						),
+					},
+				],
+			};
+		} catch (error) {
+			throw this.payloadClient.wrapError(
+				error instanceof Error ? error : new Error(String(error)),
+			);
+		}
+	}
+
+	/**
+	 * Create a lecture document in Payload CMS
+	 */
+	private async createLecture(args: {
+		payloadUrl?: string;
+		lectureData: Record<string, any>;
+	}): Promise<{
+		content: {
+			type: string;
+			text: string;
+		}[];
+	}> {
+		if (!args.lectureData || typeof args.lectureData !== "object") {
+			throw new McpError(ErrorCode.InvalidParams, "Lecture data is required");
+		}
+
+		const payloadUrl = args.payloadUrl || "http://localhost:3000";
+
+		try {
+			const result = await this.payloadClient.createLecture(
+				payloadUrl,
+				args.lectureData,
+			);
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify(
+							{
+								success: true,
+								message: "Lecture successfully created",
+								lectureId: result.id,
+								payloadUrl: payloadUrl,
+								lectureData: args.lectureData,
+							},
+							null,
+							2,
+						),
+					},
+				],
+			};
+		} catch (error) {
+			throw this.payloadClient.wrapError(
+				error instanceof Error ? error : new Error(String(error)),
+			);
+		}
+	}
+
+	/**
+	 * Get a lecture document from Payload CMS
+	 */
+	private async getLecture(args: {
+		payloadUrl?: string;
+		lectureId: string;
+	}): Promise<{
+		content: {
+			type: string;
+			text: string;
+		}[];
+	}> {
+		if (!args.lectureId) {
+			throw new McpError(ErrorCode.InvalidParams, "Lecture ID is required");
+		}
+
+		const payloadUrl = args.payloadUrl || "http://localhost:3000";
+
+		try {
+			const result = await this.payloadClient.getLecture(
+				payloadUrl,
+				args.lectureId,
+			);
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify(result, null, 2),
+					},
+				],
+			};
+		} catch (error) {
+			throw this.payloadClient.wrapError(
+				error instanceof Error ? error : new Error(String(error)),
+			);
+		}
+	}
+
+	/**
 	 * Handle tool execution
 	 */
 	async executeTool(
@@ -412,7 +747,15 @@ export class McpToolHandler {
 		isError?: boolean;
 	}> {
 		// Only check Anki connection for Anki-related tools
-		const payloadTools = ["create_atom", "get_atom"];
+		const payloadTools = [
+			"create_atom",
+			"get_atom",
+			"list_atoms",
+			"update_atom",
+			"delete_atom",
+			"create_lecture",
+			"get_lecture",
+		];
 		if (!payloadTools.includes(name)) {
 			await this.ankiClient.checkConnection();
 		}
@@ -452,6 +795,16 @@ export class McpToolHandler {
 					return this.createAtom(args);
 				case "get_atom":
 					return this.getAtom(args);
+				case "list_atoms":
+					return this.listAtoms(args);
+				case "update_atom":
+					return this.updateAtom(args);
+				case "delete_atom":
+					return this.deleteAtom(args);
+				case "create_lecture":
+					return this.createLecture(args);
+				case "get_lecture":
+					return this.getLecture(args);
 
 				// Dynamic model-specific note creation
 				default:

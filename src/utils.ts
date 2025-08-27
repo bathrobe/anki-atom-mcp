@@ -618,6 +618,254 @@ export class PayloadClient {
 	}
 
 	/**
+	 * List atoms with optional filtering
+	 */
+	async listAtoms(
+		payloadUrl: string,
+		options?: {
+			limit?: number;
+			page?: number;
+			where?: Record<string, any>;
+		},
+	): Promise<{
+		docs: any[];
+		totalDocs: number;
+		limit: number;
+		totalPages: number;
+		page: number;
+		pagingCounter: number;
+		hasPrevPage: boolean;
+		hasNextPage: boolean;
+	}> {
+		try {
+			const url = `${payloadUrl.replace(/\/$/, "")}/api/atoms`;
+			const params = new URLSearchParams();
+
+			if (options?.limit) params.append("limit", options.limit.toString());
+			if (options?.page) params.append("page", options.page.toString());
+			if (options?.where) params.append("where", JSON.stringify(options.where));
+
+			const response = await this.httpClient.get(`${url}?${params.toString()}`);
+			return response.data;
+		} catch (error) {
+			if (error instanceof AxiosError) {
+				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+					throw new PayloadConnectionError(
+						`Cannot connect to Payload CMS at ${payloadUrl}. Please check the URL and ensure the server is running.`,
+					);
+				}
+
+				if (error.response) {
+					const statusCode = error.response.status;
+					const message = error.response.data?.message || error.message;
+					throw new PayloadApiError(
+						`Payload CMS API error: ${message}`,
+						statusCode,
+					);
+				}
+
+				throw new PayloadConnectionError(
+					`Network error connecting to Payload CMS: ${error.message}`,
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	/**
+	 * Update an atom document in Payload CMS
+	 */
+	async updateAtom(
+		payloadUrl: string,
+		atomId: string,
+		atomData: Record<string, any>,
+	): Promise<Record<string, any>> {
+		try {
+			const url = `${payloadUrl.replace(/\/$/, "")}/api/atoms/${atomId}`;
+
+			const response = await this.httpClient.patch(url, atomData);
+
+			if (!response.data) {
+				throw new PayloadApiError(
+					"Invalid response from Payload CMS: no data",
+					response.status,
+				);
+			}
+
+			return response.data;
+		} catch (error) {
+			if (error instanceof AxiosError) {
+				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+					throw new PayloadConnectionError(
+						`Cannot connect to Payload CMS at ${payloadUrl}. Please check the URL and ensure the server is running.`,
+					);
+				}
+
+				if (error.response) {
+					const statusCode = error.response.status;
+					const message = error.response.data?.message || error.message;
+					throw new PayloadApiError(
+						`Payload CMS API error: ${message}`,
+						statusCode,
+					);
+				}
+
+				throw new PayloadConnectionError(
+					`Network error connecting to Payload CMS: ${error.message}`,
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	/**
+	 * Delete an atom document from Payload CMS
+	 */
+	async deleteAtom(payloadUrl: string, atomId: string): Promise<void> {
+		try {
+			const url = `${payloadUrl.replace(/\/$/, "")}/api/atoms/${atomId}`;
+
+			await this.httpClient.delete(url);
+		} catch (error) {
+			if (error instanceof AxiosError) {
+				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+					throw new PayloadConnectionError(
+						`Cannot connect to Payload CMS at ${payloadUrl}. Please check the URL and ensure the server is running.`,
+					);
+				}
+
+				if (error.response) {
+					const statusCode = error.response.status;
+					const message = error.response.data?.message || error.message;
+					throw new PayloadApiError(
+						`Payload CMS API error: ${message}`,
+						statusCode,
+					);
+				}
+
+				throw new PayloadConnectionError(
+					`Network error connecting to Payload CMS: ${error.message}`,
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	/**
+	 * Create a new lecture document in Payload CMS
+	 */
+	async createLecture(
+		payloadUrl: string,
+		lectureData: Record<string, any>,
+	): Promise<{ id: string }> {
+		try {
+			const url = `${payloadUrl.replace(/\/$/, "")}/api/lectures`;
+
+			const response = await this.httpClient.post(url, lectureData);
+
+			let responseData = response.data;
+			if (typeof responseData === "string") {
+				try {
+					responseData = JSON.parse(responseData);
+				} catch (parseError) {
+					throw new PayloadApiError(
+						`Payload returned non-JSON response: ${responseData.substring(
+							0,
+							200,
+						)}...`,
+						response.status,
+					);
+				}
+			}
+
+			const lectureDoc = responseData.doc || responseData;
+
+			if (!lectureDoc || !lectureDoc.id) {
+				throw new PayloadApiError(
+					`Invalid response from Payload CMS: missing id field. Actual response: ${JSON.stringify(
+						responseData,
+					)}`,
+					response.status,
+				);
+			}
+
+			return { id: lectureDoc.id };
+		} catch (error) {
+			if (error instanceof AxiosError) {
+				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+					throw new PayloadConnectionError(
+						`Cannot connect to Payload CMS at ${payloadUrl}. Please check the URL and ensure the server is running.`,
+					);
+				}
+
+				if (error.response) {
+					const statusCode = error.response.status;
+					const message = error.response.data?.message || error.message;
+					throw new PayloadApiError(
+						`Payload CMS API error: ${message}`,
+						statusCode,
+					);
+				}
+
+				throw new PayloadConnectionError(
+					`Network error connecting to Payload CMS: ${error.message}`,
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	/**
+	 * Get a lecture document from Payload CMS by ID
+	 */
+	async getLecture(
+		payloadUrl: string,
+		lectureId: string,
+	): Promise<Record<string, any>> {
+		try {
+			const url = `${payloadUrl.replace(/\/$/, "")}/api/lectures/${lectureId}`;
+
+			const response = await this.httpClient.get(url);
+
+			if (!response.data) {
+				throw new PayloadApiError(
+					"Invalid response from Payload CMS: no data",
+					response.status,
+				);
+			}
+
+			return response.data;
+		} catch (error) {
+			if (error instanceof AxiosError) {
+				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+					throw new PayloadConnectionError(
+						`Cannot connect to Payload CMS at ${payloadUrl}. Please check the URL and ensure the server is running.`,
+					);
+				}
+
+				if (error.response) {
+					const statusCode = error.response.status;
+					const message = error.response.data?.message || error.message;
+					throw new PayloadApiError(
+						`Payload CMS API error: ${message}`,
+						statusCode,
+					);
+				}
+
+				throw new PayloadConnectionError(
+					`Network error connecting to Payload CMS: ${error.message}`,
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	/**
 	 * Convert client errors to MCP errors
 	 */
 	wrapError(error: Error): McpError {
