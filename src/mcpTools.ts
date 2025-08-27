@@ -409,7 +409,11 @@ export class McpToolHandler {
 		}[];
 		isError?: boolean;
 	}> {
-		await this.ankiClient.checkConnection();
+		// Only check Anki connection for Anki-related tools
+		const payloadTools = ["create_atom", "get_atom"];
+		if (!payloadTools.includes(name)) {
+			await this.ankiClient.checkConnection();
+		}
 
 		try {
 			switch (name) {
