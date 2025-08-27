@@ -1,16 +1,17 @@
 {
-  "name": "anki-mcp-server",
+  "name": "anki-atom-mcp",
   "version": "0.1.5",
   "description": "A Model Context Protocol (MCP) server that enables LLMs to interact with Anki flashcard software through AnkiConnect",
   "type": "module",
   "bin": {
-    "anki-mcp-server": "dist/index.js"
+    "anki-atom-mcp": "dist/index.js"
   },
   "files": [
     "dist"
   ],
   "scripts": {
     "prepare": "husky",
+    "prepublishOnly": "npm run build",
     "prebuild": "node -p \"'export const MCP_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/_version.ts",
     "build": "tsup",
     "watch": "tsup --watch",

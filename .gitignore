@@ -4,4 +4,3 @@ build/
 .env*
 .idea/
 test-language.js
-dist/
