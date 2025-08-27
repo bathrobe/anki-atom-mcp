@@ -507,16 +507,11 @@ export class PayloadClient {
 		try {
 			const url = `${payloadUrl.replace(/\/$/, "")}/api/atoms`;
 
-			console.log("Making request to:", url);
-			console.log("Request data:", JSON.stringify(atomData, null, 2));
+			// Debug logging removed - stdout must be reserved for MCP protocol only
 
 			const response = await this.httpClient.post(url, atomData);
 
-			// Debug logging to see actual response structure
-			console.log("Payload response status:", response.status);
-			console.log("Payload response headers:", response.headers);
-			console.log("Raw response data type:", typeof response.data);
-			console.log("Raw response data:", response.data);
+			// Debug logging removed - stdout must be reserved for MCP protocol only
 
 			// Handle different response types
 			let responseData = response.data;
@@ -524,7 +519,7 @@ export class PayloadClient {
 				try {
 					responseData = JSON.parse(responseData);
 				} catch (parseError) {
-					console.log("Failed to parse response as JSON:", parseError);
+					// Failed to parse response as JSON
 					throw new PayloadApiError(
 						`Payload returned non-JSON response: ${responseData.substring(
 							0,
@@ -535,10 +530,7 @@ export class PayloadClient {
 				}
 			}
 
-			console.log(
-				"Parsed response data:",
-				JSON.stringify(responseData, null, 2),
-			);
+			// Debug logging removed - stdout must be reserved for MCP protocol only
 
 			// Payload returns the created document in a 'doc' field
 			const atomDoc = responseData.doc || responseData;
