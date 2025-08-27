@@ -279,7 +279,7 @@ export class McpToolHandler {
 							payloadUrl: {
 								type: "string",
 								description:
-									"Base URL of the Payload CMS instance (e.g., https://my-payload-cms.com)",
+									"Base URL of the Payload CMS instance (defaults to http://localhost:3000)",
 							},
 							atomData: {
 								type: "object",
@@ -287,7 +287,26 @@ export class McpToolHandler {
 								additionalProperties: true,
 							},
 						},
-						required: ["payloadUrl", "atomData"],
+						required: ["atomData"],
+					},
+				},
+				{
+					name: "get_atom",
+					description: "Get an atom document from Payload CMS by ID",
+					inputSchema: {
+						type: "object",
+						properties: {
+							payloadUrl: {
+								type: "string",
+								description:
+									"Base URL of the Payload CMS instance (defaults to http://localhost:3000)",
+							},
+							atomId: {
+								type: "string",
+								description: "ID of the atom document to retrieve",
+							},
+						},
+						required: ["atomId"],
 					},
 				},
 			],
@@ -298,7 +317,7 @@ export class McpToolHandler {
 	 * Create an atom document in Payload CMS
 	 */
 	private async createAtom(args: {
-		payloadUrl: string;
+		payloadUrl?: string;
 		atomData: Record<string, any>;
 	}): Promise<{
 		content: {
@@ -306,17 +325,15 @@ export class McpToolHandler {
 			text: string;
 		}[];
 	}> {
-		if (!args.payloadUrl) {
-			throw new McpError(ErrorCode.InvalidParams, "Payload URL is required");
-		}
-
 		if (!args.atomData || typeof args.atomData !== "object") {
 			throw new McpError(ErrorCode.InvalidParams, "Atom data is required");
 		}
 
+		const payloadUrl = args.payloadUrl || "http://localhost:3000";
+
 		try {
 			const result = await this.payloadClient.createAtom(
-				args.payloadUrl,
+				payloadUrl,
 				args.atomData,
 			);
 
@@ -328,11 +345,47 @@ export class McpToolHandler {
 							{
 								success: true,
 								atomId: result.id,
-								payloadUrl: args.payloadUrl,
+								payloadUrl: payloadUrl,
 							},
 							null,
 							2,
 						),
+					},
+				],
+			};
+		} catch (error) {
+			throw this.payloadClient.wrapError(
+				error instanceof Error ? error : new Error(String(error)),
+			);
+		}
+	}
+
+	/**
+	 * Get an atom document from Payload CMS
+	 */
+	private async getAtom(args: {
+		payloadUrl?: string;
+		atomId: string;
+	}): Promise<{
+		content: {
+			type: string;
+			text: string;
+		}[];
+	}> {
+		if (!args.atomId) {
+			throw new McpError(ErrorCode.InvalidParams, "Atom ID is required");
+		}
+
+		const payloadUrl = args.payloadUrl || "http://localhost:3000";
+
+		try {
+			const result = await this.payloadClient.getAtom(payloadUrl, args.atomId);
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify(result, null, 2),
 					},
 				],
 			};
@@ -391,6 +444,8 @@ export class McpToolHandler {
 				// Payload CMS tools
 				case "create_atom":
 					return this.createAtom(args);
+				case "get_atom":
+					return this.getAtom(args);
 
 				// Dynamic model-specific note creation
 				default:

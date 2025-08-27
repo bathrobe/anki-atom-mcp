@@ -543,6 +543,52 @@ export class PayloadClient {
 	}
 
 	/**
+	 * Get an atom document from Payload CMS by ID
+	 */
+	async getAtom(
+		payloadUrl: string,
+		atomId: string,
+	): Promise<Record<string, any>> {
+		try {
+			const url = `${payloadUrl.replace(/\/$/, "")}/api/atoms/${atomId}`;
+
+			const response = await this.httpClient.get(url);
+
+			if (!response.data) {
+				throw new PayloadApiError(
+					"Invalid response from Payload CMS: no data",
+					response.status,
+				);
+			}
+
+			return response.data;
+		} catch (error) {
+			if (error instanceof AxiosError) {
+				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
+					throw new PayloadConnectionError(
+						`Cannot connect to Payload CMS at ${payloadUrl}. Please check the URL and ensure the server is running.`,
+					);
+				}
+
+				if (error.response) {
+					const statusCode = error.response.status;
+					const message = error.response.data?.message || error.message;
+					throw new PayloadApiError(
+						`Payload CMS API error: ${message}`,
+						statusCode,
+					);
+				}
+
+				throw new PayloadConnectionError(
+					`Network error connecting to Payload CMS: ${error.message}`,
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	/**
 	 * Convert client errors to MCP errors
 	 */
 	wrapError(error: Error): McpError {
