@@ -492,6 +492,7 @@ export class PayloadClient {
 			timeout: 10000,
 			headers: {
 				"Content-Type": "application/json",
+				Accept: "application/json",
 			},
 		});
 	}
@@ -506,25 +507,49 @@ export class PayloadClient {
 		try {
 			const url = `${payloadUrl.replace(/\/$/, "")}/api/atoms`;
 
+			console.log("Making request to:", url);
+			console.log("Request data:", JSON.stringify(atomData, null, 2));
+
 			const response = await this.httpClient.post(url, atomData);
 
 			// Debug logging to see actual response structure
 			console.log("Payload response status:", response.status);
+			console.log("Payload response headers:", response.headers);
+			console.log("Raw response data type:", typeof response.data);
+			console.log("Raw response data:", response.data);
+
+			// Handle different response types
+			let responseData = response.data;
+			if (typeof responseData === "string") {
+				try {
+					responseData = JSON.parse(responseData);
+				} catch (parseError) {
+					console.log("Failed to parse response as JSON:", parseError);
+					throw new PayloadApiError(
+						`Payload returned non-JSON response: ${responseData.substring(
+							0,
+							200,
+						)}...`,
+						response.status,
+					);
+				}
+			}
+
 			console.log(
-				"Payload response data:",
-				JSON.stringify(response.data, null, 2),
+				"Parsed response data:",
+				JSON.stringify(responseData, null, 2),
 			);
 
-			if (!response.data || !response.data.id) {
+			if (!responseData || !responseData.id) {
 				throw new PayloadApiError(
 					`Invalid response from Payload CMS: missing id field. Actual response: ${JSON.stringify(
-						response.data,
+						responseData,
 					)}`,
 					response.status,
 				);
 			}
 
-			return { id: response.data.id };
+			return { id: responseData.id };
 		} catch (error) {
 			if (error instanceof AxiosError) {
 				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
