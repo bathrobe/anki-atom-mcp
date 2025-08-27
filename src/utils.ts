@@ -508,9 +508,18 @@ export class PayloadClient {
 
 			const response = await this.httpClient.post(url, atomData);
 
+			// Debug logging to see actual response structure
+			console.log("Payload response status:", response.status);
+			console.log(
+				"Payload response data:",
+				JSON.stringify(response.data, null, 2),
+			);
+
 			if (!response.data || !response.data.id) {
 				throw new PayloadApiError(
-					"Invalid response from Payload CMS: missing id field",
+					`Invalid response from Payload CMS: missing id field. Actual response: ${JSON.stringify(
+						response.data,
+					)}`,
 					response.status,
 				);
 			}
