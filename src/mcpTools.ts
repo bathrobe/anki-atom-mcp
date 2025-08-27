@@ -344,8 +344,10 @@ export class McpToolHandler {
 						text: JSON.stringify(
 							{
 								success: true,
+								message: "Atom successfully created",
 								atomId: result.id,
 								payloadUrl: payloadUrl,
+								atomData: args.atomData,
 							},
 							null,
 							2,

@@ -540,7 +540,10 @@ export class PayloadClient {
 				JSON.stringify(responseData, null, 2),
 			);
 
-			if (!responseData || !responseData.id) {
+			// Payload returns the created document in a 'doc' field
+			const atomDoc = responseData.doc || responseData;
+
+			if (!atomDoc || !atomDoc.id) {
 				throw new PayloadApiError(
 					`Invalid response from Payload CMS: missing id field. Actual response: ${JSON.stringify(
 						responseData,
@@ -549,7 +552,7 @@ export class PayloadClient {
 				);
 			}
 
-			return { id: responseData.id };
+			return { id: atomDoc.id };
 		} catch (error) {
 			if (error instanceof AxiosError) {
 				if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
