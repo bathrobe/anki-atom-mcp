@@ -284,7 +284,28 @@ export class McpToolHandler {
 							atomData: {
 								type: "object",
 								description: "Data for the atom document",
-								additionalProperties: true,
+								properties: {
+									title: {
+										type: "string",
+										description: "Title/main idea of the atom",
+									},
+									summary: {
+										type: "string",
+										description:
+											"One complete sentence summarizing the main idea",
+									},
+									details: {
+										type: "string",
+										description:
+											"2-3 supporting sentences offering more info over summary",
+									},
+									lecture: {
+										type: ["string", "number"],
+										description: "Lecture ID or relationship",
+									},
+								},
+								required: ["title", "lecture"],
+								additionalProperties: false,
 							},
 						},
 						required: ["atomData"],
@@ -395,7 +416,26 @@ export class McpToolHandler {
 							lectureData: {
 								type: "object",
 								description: "Data for the lecture document",
-								additionalProperties: true,
+								properties: {
+									title: {
+										type: "string",
+										description: "Title of the lecture",
+									},
+									number: {
+										type: "number",
+										description: "Lecture number in sequence",
+									},
+									description: {
+										type: "string",
+										description: "Description of the lecture",
+									},
+									course: {
+										type: ["string", "number"],
+										description: "Course ID or relationship",
+									},
+								},
+								required: ["title", "number", "course"],
+								additionalProperties: false,
 							},
 						},
 						required: ["lectureData"],
